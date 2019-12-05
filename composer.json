@@ -16,7 +16,8 @@
         "fguillot/json-rpc": "1.*"
     },
     "require": {
-        "php": ">=5.3.4"
+        "php": ">=5.3.4",
+        "ext-json": "*"
     },
     "autoload": {
         "psr-0": {"JsonRPC": "src/"}

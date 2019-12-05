@@ -9,6 +9,7 @@
 namespace JsonRPC\Smd;
 
 
+use ReflectionClass;
 use ReflectionFunction;
 use ReflectionMethod;
 
@@ -106,9 +107,10 @@ class SmdBuilder
     /**
      * Build the Service Mapping Description (SMD)
      *
-     * @param  string $target URI of the service endpoint
-     * @param bool $returnJSON
-     * @return array
+     * @param string $target URI of the service endpoint
+     * @param bool|array|string $returnJSON
+     * @return false|string|array
+     * @throws \ReflectionException
      */
     public function build($target, $returnJSON = true) {
         $smd = array(
@@ -141,7 +143,7 @@ class SmdBuilder
         foreach ($this->classes as $procedure => $callback) {
             if(!isset($smd['services'][$procedure]) && method_exists($callback[0], $callback[1])) {
                 $className       = is_object($callback[0]) ? get_class($callback[0]) : $callback[0];
-                $methodReflection = (new \ReflectionClass($className))->getMethod($callback[1]);
+                $methodReflection = (new ReflectionClass($className))->getMethod($callback[1]);
 
                 if(!isset($smd['services'][$procedure])){
                     $smd['services'][$procedure]  = $this->buildSmdService($procedure, $methodReflection);
@@ -157,7 +159,7 @@ class SmdBuilder
          */
         foreach ($this->services as $namespace => $class) {
             $className       = is_object($class) ? get_class($class) : $class;
-            $classReflection = new \ReflectionClass($className);
+            $classReflection = new ReflectionClass($className);
 
             foreach ($classReflection->getMethods(ReflectionMethod::IS_PUBLIC) as $methodReflection) {
                 if (substr($methodReflection->name, 0, 1) !== '_' && !$methodReflection->isInternal()) {
@@ -176,7 +178,7 @@ class SmdBuilder
          */
         foreach ($this->instances as $instance) {
             $className       = is_object($instance) ? get_class($instance) : $instance;
-            $classReflection = new \ReflectionClass($className);
+            $classReflection = new ReflectionClass($className);
 
             foreach ($classReflection->getMethods(ReflectionMethod::IS_PUBLIC) as $methodReflection) {
                 $serviceName = $methodReflection->getName();
@@ -233,7 +235,7 @@ class SmdBuilder
         foreach ($reflection->getParameters() as $parameter) {
             $p = array(
                 'name'     => $parameter->getName(),
-                'type'     => $parameter->hasType() ? $parameter->getType()->__toString() : 'any',
+                'type'     => $parameter->hasType() ? (string)$parameter->getType() : 'any',
                 'optional' => $parameter->isOptional()
             );
             if ($parameter->isOptional()) {
@@ -251,7 +253,7 @@ class SmdBuilder
             'transport'   => 'POST',
             'description' => $reflection->getDocComment(),
             'parameters'  => $parameters,
-            'returns'     => $reflection->hasReturnType() ? $reflection->getReturnType()->__toString() : null
+            'returns'     => $reflection->hasReturnType() ? (string)$reflection->getReturnType() : null
         );
 
         if (!empty($returnDoc)) {
