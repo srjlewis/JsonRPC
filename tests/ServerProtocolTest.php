@@ -22,7 +22,7 @@ class ServerProtocolTest extends \JsonRPC\Response\HeaderMockTest
         };
 
         $server = new Server('{"jsonrpc": "2.0", "method": "subtract", "params": [42, 23], "id": 1}');
-        $server->register('subtract', $subtract);
+        $server->getProcedureHandler()->withCallback('subtract', $subtract);
 
         $this->assertEquals(
             json_decode('{"jsonrpc": "2.0", "result": 19, "id": 1}', true),
@@ -30,7 +30,7 @@ class ServerProtocolTest extends \JsonRPC\Response\HeaderMockTest
         );
 
         $server = new Server('{"jsonrpc": "2.0", "method": "subtract", "params": [23, 42], "id": 1}');
-        $server->register('subtract', $subtract);
+        $server->getProcedureHandler()->withCallback('subtract', $subtract);
 
         $this->assertEquals(
             json_decode('{"jsonrpc": "2.0", "result": -19, "id": 1}', true),
@@ -45,7 +45,7 @@ class ServerProtocolTest extends \JsonRPC\Response\HeaderMockTest
         };
 
         $server = new Server('{"jsonrpc": "2.0", "method": "subtract", "params": {"subtrahend": 23, "minuend": 42}, "id": 3}');
-        $server->register('subtract', $subtract);
+        $server->getProcedureHandler()->withCallback('subtract', $subtract);
 
         $this->assertEquals(
             json_decode('{"jsonrpc": "2.0", "result": 19, "id": 3}', true),
@@ -53,7 +53,7 @@ class ServerProtocolTest extends \JsonRPC\Response\HeaderMockTest
         );
 
         $server = new Server('{"jsonrpc": "2.0", "method": "subtract", "params": {"minuend": 42, "subtrahend": 23}, "id": 4}');
-        $server->register('subtract', $subtract);
+        $server->getProcedureHandler()->withCallback('subtract', $subtract);
 
         $this->assertEquals(
             json_decode('{"jsonrpc": "2.0", "result": 19, "id": 4}', true),
@@ -67,14 +67,14 @@ class ServerProtocolTest extends \JsonRPC\Response\HeaderMockTest
         $foobar = function() {};
 
         $server = new Server('{"jsonrpc": "2.0", "method": "update", "params": [1,2,3,4,5]}');
-        $server->register('update', $update);
-        $server->register('foobar', $foobar);
+        $server->getProcedureHandler()->withCallback('update', $update);
+        $server->getProcedureHandler()->withCallback('foobar', $foobar);
 
         $this->assertEquals('', $server->execute());
 
         $server = new Server('{"jsonrpc": "2.0", "method": "foobar"}');
-        $server->register('update', $update);
-        $server->register('foobar', $foobar);
+        $server->getProcedureHandler()->withCallback('update', $update);
+        $server->getProcedureHandler()->withCallback('foobar', $foobar);
 
         $this->assertEquals('', $server->execute());
     }
@@ -117,7 +117,7 @@ class ServerProtocolTest extends \JsonRPC\Response\HeaderMockTest
             return pack("H*" ,'c32e');
         };
 
-        $server->register('invalidresponse', $invalidresponse);
+        $server->getProcedureHandler()->withCallback('invalidresponse', $invalidresponse);
 
         $this->assertEquals(
             json_decode('{"jsonrpc": "2.0","id": 1, "error": {"code": -32603, "message": "Internal error","data": "Malformed UTF-8 characters, possibly incorrectly encoded"}}', true),
@@ -185,21 +185,21 @@ class ServerProtocolTest extends \JsonRPC\Response\HeaderMockTest
             {"jsonrpc": "2.0", "method": "doStuff", "id": 15}
         ]');
 
-        $server->register('sum', function($a, $b, $c) {
+        $server->getProcedureHandler()->withCallback('sum', function($a, $b, $c) {
             return $a + $b + $c;
         });
 
-        $server->register('subtract', function($minuend, $subtrahend) {
+        $server->getProcedureHandler()->withCallback('subtract', function($minuend, $subtrahend) {
             return $minuend - $subtrahend;
         });
 
-        $server->register('get_data', function() {
+        $server->getProcedureHandler()->withCallback('get_data', function() {
             return array('hello', 5);
         });
 
-        $server->attach(new C);
+        $server->getProcedureHandler()->withObject(new C);
 
-        $server->bind('doStuff', 'C', 'doSomething');
+        $server->getProcedureHandler()->withClassAndMethod('doStuff', 'C', 'doSomething');
 
         $response = $server->execute();
 
@@ -224,11 +224,11 @@ class ServerProtocolTest extends \JsonRPC\Response\HeaderMockTest
             {"jsonrpc": "2.0", "method": "notify_hello", "params": [7]}
         ]');
 
-        $server->register('notify_sum', function($a, $b, $c) {
+        $server->getProcedureHandler()->withCallback('notify_sum', function($a, $b, $c) {
 
         });
 
-        $server->register('notify_hello', function($id) {
+        $server->getProcedureHandler()->withCallback('notify_hello', function($id) {
 
         });
 

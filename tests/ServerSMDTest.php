@@ -1,13 +1,13 @@
 <?php
 use JsonRPC\ProcedureHandler;
-
+use PHPUnit\Framework\TestCase;
 /**
  * Created by PhpStorm.
  * User: StevenLewis
  * Date: 10/05/2017
  * Time: 12:25
  */
-class ServerSMDTest extends PHPUnit_Framework_TestCase
+class ServerSMDTest extends TestCase
 {
 
     public function testSMD()

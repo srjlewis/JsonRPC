@@ -2,20 +2,23 @@
 
 namespace JsonRPC;
 
-require_once __DIR__.'/../vendor/autoload.php';
+use PHPUnit\Framework\TestCase;
 
-define ('CURLOPT_URL', 10002);
-define ('CURLOPT_RETURNTRANSFER', 19913);
-define ('CURLOPT_CONNECTTIMEOUT', 78);
-define ('CURLOPT_MAXREDIRS', 68);
-define ('CURLOPT_SSL_VERIFYPEER', 64);
-define ('CURLOPT_POST', 47);
-define ('CURLOPT_POSTFIELDS', 10015);
-define ('CURLOPT_HTTPHEADER', 10023);
-define ('CURLOPT_HEADERFUNCTION', 20079);
-define ('CURLOPT_CAINFO', 10065);
+require_once __DIR__ . '/../vendor/autoload.php';
 
-function extension_loaded($extension) {
+defined('CURLOPT_URL') || define('CURLOPT_URL', 10002);
+defined('CURLOPT_RETURNTRANSFER') || define('CURLOPT_RETURNTRANSFER', 19913);
+defined('CURLOPT_CONNECTTIMEOUT') || define('CURLOPT_CONNECTTIMEOUT', 78);
+defined('CURLOPT_MAXREDIRS') || define('CURLOPT_MAXREDIRS', 68);
+defined('CURLOPT_SSL_VERIFYPEER') || define('CURLOPT_SSL_VERIFYPEER', 64);
+defined('CURLOPT_POST') || define('CURLOPT_POST', 47);
+defined('CURLOPT_POSTFIELDS') || define('CURLOPT_POSTFIELDS', 10015);
+defined('CURLOPT_HTTPHEADER') || define('CURLOPT_HTTPHEADER', 10023);
+defined('CURLOPT_HEADERFUNCTION') || define('CURLOPT_HEADERFUNCTION', 20079);
+defined('CURLOPT_CAINFO') || define('CURLOPT_CAINFO', 10065);
+
+function extension_loaded($extension)
+{
     return HttpClientTest::$functions->extension_loaded($extension);
 }
 
@@ -29,27 +32,32 @@ function stream_context_create(array $params)
     return HttpClientTest::$functions->stream_context_create($params);
 }
 
-function curl_init() {
+function curl_init()
+{
     return HttpClientTest::$functions->curl_init();
 }
 
-function curl_setopt_array($ch, array $params) {
+function curl_setopt_array($ch, array $params)
+{
     HttpClientTest::$functions->curl_setopt_array($ch, $params);
 }
 
-function curl_setopt($ch, $option, $value) {
+function curl_setopt($ch, $option, $value)
+{
     HttpClientTest::$functions->curl_setopt($ch, $option, $value);
 }
 
-function curl_exec($ch) {
+function curl_exec($ch)
+{
     return HttpClientTest::$functions->curl_exec($ch);
 }
 
-function curl_close($ch) {
+function curl_close($ch)
+{
     HttpClientTest::$functions->curl_close($ch);
 }
 
-class HttpClientTest extends \PHPUnit_Framework_TestCase
+class HttpClientTest extends TestCase
 {
     public static $functions;
 
@@ -57,14 +65,22 @@ class HttpClientTest extends \PHPUnit_Framework_TestCase
     {
         self::$functions = $this
             ->getMockBuilder('stdClass')
-            ->setMethods(array('extension_loaded', 'fopen', 'stream_context_create',
-                'curl_init', 'curl_setopt_array', 'curl_setopt', 'curl_exec', 'curl_close'))
+            ->setMethods(array(
+                'extension_loaded',
+                'fopen',
+                'stream_context_create',
+                'curl_init',
+                'curl_setopt_array',
+                'curl_setopt',
+                'curl_exec',
+                'curl_close'
+            ))
             ->getMock();
     }
 
     public function testWithServerError()
     {
-        $this->setExpectedException('\JsonRPC\Exception\ServerErrorException');
+        $this->expectException('\JsonRPC\Exception\ServerErrorException');
 
         $httpClient = new HttpClient();
         $httpClient->handleExceptions(array(
@@ -76,7 +92,7 @@ class HttpClientTest extends \PHPUnit_Framework_TestCase
 
     public function testWithConnectionFailure()
     {
-        $this->setExpectedException('\JsonRPC\Exception\ConnectionFailureException');
+        $this->expectException('\JsonRPC\Exception\ConnectionFailureException');
 
         $httpClient = new HttpClient();
         $httpClient->handleExceptions(array(
@@ -86,7 +102,7 @@ class HttpClientTest extends \PHPUnit_Framework_TestCase
 
     public function testWithAccessForbidden()
     {
-        $this->setExpectedException('\JsonRPC\Exception\AccessDeniedException');
+        $this->expectException('\JsonRPC\Exception\AccessDeniedException');
 
         $httpClient = new HttpClient();
         $httpClient->handleExceptions(array(
@@ -96,7 +112,7 @@ class HttpClientTest extends \PHPUnit_Framework_TestCase
 
     public function testWithAccessNotAllowed()
     {
-        $this->setExpectedException('\JsonRPC\Exception\AccessDeniedException');
+        $this->expectException('\JsonRPC\Exception\AccessDeniedException');
 
         $httpClient = new HttpClient();
         $httpClient->handleExceptions(array(
@@ -117,22 +133,22 @@ class HttpClientTest extends \PHPUnit_Framework_TestCase
             ->method('stream_context_create')
             ->with(array(
                 'http' => array(
-                    'method' => 'POST',
+                    'method'           => 'POST',
                     'protocol_version' => 1.1,
-                    'timeout' => 5,
-                    'max_redirects' => 2,
-                    'header' => implode("\r\n", array(
+                    'timeout'          => 5,
+                    'max_redirects'    => 2,
+                    'header'           => implode("\r\n", array(
                         'User-Agent: JSON-RPC PHP Client <https://github.com/srjlewis/JsonRPC>',
                         'Content-Type: application/json',
                         'Accept: application/json',
                         'Connection: close',
                         'Content-Length: 4',
                     )),
-                    'content' => 'test',
-                    'ignore_errors' => true,
+                    'content'          => 'test',
+                    'ignore_errors'    => true,
                 ),
-                'ssl' => array(
-                    'verify_peer' => true,
+                'ssl'  => array(
+                    'verify_peer'      => true,
                     'verify_peer_name' => true,
                 )
             ))
@@ -145,11 +161,11 @@ class HttpClientTest extends \PHPUnit_Framework_TestCase
             ->will($this->returnValue(false));
 
         $httpClient = new HttpClient('url');
-        $httpClient->withBeforeRequestCallback(function(HttpClient $client, $payload) {
-            $client->withHeaders(array('Content-Length: '.strlen($payload)));
+        $httpClient->withBeforeRequestCallback(function (HttpClient $client, $payload) {
+            $client->withHeaders(array('Content-Length: ' . strlen($payload)));
         });
 
-        $this->setExpectedException('\JsonRPC\Exception\ConnectionFailureException');
+        $this->expectException('\JsonRPC\Exception\ConnectionFailureException');
         $httpClient->execute('test');
     }
 
@@ -170,14 +186,14 @@ class HttpClientTest extends \PHPUnit_Framework_TestCase
             ->expects($this->at(2))
             ->method('curl_setopt_array')
             ->with('curl', array(
-                CURLOPT_URL => 'url',
+                CURLOPT_URL            => 'url',
                 CURLOPT_RETURNTRANSFER => true,
                 CURLOPT_CONNECTTIMEOUT => 5,
-                CURLOPT_MAXREDIRS => 2,
+                CURLOPT_MAXREDIRS      => 2,
                 CURLOPT_SSL_VERIFYPEER => true,
-                CURLOPT_POST => true,
-                CURLOPT_POSTFIELDS => 'test',
-                CURLOPT_HTTPHEADER => array(
+                CURLOPT_POST           => true,
+                CURLOPT_POSTFIELDS     => 'test',
+                CURLOPT_HTTPHEADER     => array(
                     'User-Agent: JSON-RPC PHP Client <https://github.com/srjlewis/JsonRPC>',
                     'Content-Type: application/json',
                     'Accept: application/json',
@@ -209,12 +225,12 @@ class HttpClientTest extends \PHPUnit_Framework_TestCase
         $httpClient = new HttpClient('url');
         $httpClient
             ->withSslLocalCert('test.crt')
-            ->withBeforeRequestCallback(function(HttpClient $client, $payload) {
-                $client->withHeaders(array('Content-Length: '.strlen($payload)));
+            ->withBeforeRequestCallback(function (HttpClient $client, $payload) {
+                $client->withHeaders(array('Content-Length: ' . strlen($payload)));
             });
 
 
-        $this->setExpectedException('\JsonRPC\Exception\ConnectionFailureException');
+        $this->expectException('\JsonRPC\Exception\ConnectionFailureException');
         $httpClient->execute('test');
     }
 }

@@ -1,10 +1,11 @@
 <?php
 
 use JsonRPC\Validator\UserValidator;
+use PHPUnit\Framework\TestCase;
 
 require_once __DIR__.'/../../vendor/autoload.php';
 
-class UserValidatorTest extends PHPUnit_Framework_TestCase
+class UserValidatorTest extends TestCase
 {
     public function testWithEmptyHosts()
     {
@@ -18,7 +19,7 @@ class UserValidatorTest extends PHPUnit_Framework_TestCase
 
     public function testWithNotAuthorizedHosts()
     {
-        $this->setExpectedException('\JsonRPC\Exception\AuthenticationFailureException');
+        $this->expectException('\JsonRPC\Exception\AuthenticationFailureException');
         UserValidator::validate(array('user' => 'pass'), 'user', 'wrong password');
     }
 }

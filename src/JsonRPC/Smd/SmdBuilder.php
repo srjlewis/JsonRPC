@@ -235,7 +235,7 @@ class SmdBuilder
         foreach ($reflection->getParameters() as $parameter) {
             $p = array(
                 'name'     => $parameter->getName(),
-                'type'     => $parameter->hasType() ? (string)$parameter->getType() : 'any',
+                'type'     => $parameter->hasType() && $parameter->getType() ? $parameter->getType()->getName() : 'any',
                 'optional' => $parameter->isOptional()
             );
             if ($parameter->isOptional()) {
@@ -253,7 +253,7 @@ class SmdBuilder
             'transport'   => 'POST',
             'description' => $reflection->getDocComment(),
             'parameters'  => $parameters,
-            'returns'     => $reflection->hasReturnType() ? (string)$reflection->getReturnType() : null
+            'returns'     => $reflection->hasReturnType() && $reflection->getReturnType() ? $reflection->getReturnType()->getName() : null
         );
 
         if (!empty($returnDoc)) {
