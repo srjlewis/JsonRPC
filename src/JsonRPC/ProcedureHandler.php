@@ -338,6 +338,12 @@ class ProcedureHandler
             }
         }
 
+        if ($undefinedRequestParams = array_diff_key($requestParams, $params)) {
+            throw new InvalidArgumentException(
+                'Undefined arguments: '.implode(', ', array_keys($undefinedRequestParams))
+            );
+        }
+
         return $params;
     }
 
