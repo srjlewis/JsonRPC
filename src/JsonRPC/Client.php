@@ -5,6 +5,7 @@ namespace JsonRPC;
 use Exception;
 use JsonRPC\Request\RequestBuilder;
 use JsonRPC\Response\ResponseParser;
+use JsonRPC\Response\ResponseParserInterface;
 
 /**
  * JsonRPC client class
@@ -56,17 +57,28 @@ class Client
     private $httpClient;
 
     /**
+     * @var Response\ResponseParserInterface
+     */
+    protected $responseParser;
+
+    /**
      * Constructor
      *
      * @access public
-     * @param  string      $url               Server URL
-     * @param  bool        $returnException   Return exceptions
-     * @param  HttpClient  $httpClient        HTTP client object
+     * @param string $url Server URL
+     * @param bool $returnException Return exceptions
+     * @param HttpClient $httpClient HTTP client object
+     * @param ResponseParserInterface|null $responseParser
      */
-    public function __construct($url = '', $returnException = false, HttpClient $httpClient = null)
-    {
+    public function __construct(
+        $url = '',
+        $returnException = false,
+        HttpClient $httpClient = null,
+        ResponseParserInterface $responseParser = null
+    ) {
         $this->httpClient = $httpClient ?: new HttpClient($url);
         $this->returnException = $returnException;
+        $this->responseParser = $responseParser ?: ResponseParser::create();
     }
 
     /**
@@ -96,8 +108,8 @@ class Client
      * Set username and password
      *
      * @access public
-     * @param  string $username
-     * @param  string $password
+     * @param string $username
+     * @param string $password
      * @return $this
      */
     public function authentication($username, $password)
@@ -113,8 +125,8 @@ class Client
      * Automatic mapping of procedures
      *
      * @access public
-     * @param  string   $method   Procedure name
-     * @param  array    $params   Procedure arguments
+     * @param string $method Procedure name
+     * @param array $params Procedure arguments
      * @return mixed
      */
     public function __call($method, array $params)
@@ -135,7 +147,7 @@ class Client
     public function batch()
     {
         $this->isBatch = true;
-        $this->batch = array();
+        $this->batch   = array();
         return $this;
     }
 
@@ -148,22 +160,27 @@ class Client
     public function send()
     {
         $this->isBatch = false;
-        return $this->sendPayload('['.implode(', ', $this->batch).']');
+        return $this->sendPayload('[' . implode(', ', $this->batch) . ']');
     }
 
     /**
      * Execute a procedure
      *
      * @access public
-     * @param  string      $procedure Procedure name
-     * @param  array       $params    Procedure arguments
-     * @param  array       $reqattrs
-     * @param  string|null $requestId Request Id
-     * @param  string[]    $headers   Headers for this request
+     * @param string $procedure Procedure name
+     * @param array $params Procedure arguments
+     * @param array $reqattrs
+     * @param string|null $requestId Request Id
+     * @param string[] $headers Headers for this request
      * @return mixed
      */
-    public function execute($procedure, array $params = array(), array $reqattrs = array(), $requestId = null, array $headers = array())
-    {
+    public function execute(
+        $procedure,
+        array $params = array(),
+        array $reqattrs = array(),
+        $requestId = null,
+        array $headers = array()
+    ) {
         $payload = RequestBuilder::create()
             ->withProcedure($procedure)
             ->withParams($params)
@@ -182,17 +199,16 @@ class Client
     /**
      * Send payload
      *
-     * @access private
+     * @access protected
+     * @param string $payload
+     * @param string[] $headers
+     * @return Exception|array
      * @throws Exception
-     * @param  string   $payload
-     * @param  string[] $headers
-     * @return Exception|Client
      */
-    private function sendPayload($payload, array $headers = array())
+    protected function sendPayload($payload, array $headers = array())
     {
-        return ResponseParser::create()
+        return $this->responseParser
             ->withReturnException($this->returnException)
-            ->withPayload($this->httpClient->execute($payload, $headers))
-            ->parse();
+            ->parse($this->httpClient->execute($payload, $headers));
     }
 }

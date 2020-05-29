@@ -16,29 +16,21 @@ use JsonRPC\Validator\JsonFormatValidator;
  * @package JsonRPC\Request
  * @author  Frederic Guillot
  */
-class ResponseParser
+class ResponseParser implements ResponseParserInterface
 {
-    /**
-     * Payload
-     *
-     * @access private
-     * @var mixed
-     */
-    private $payload;
-
     /**
      * Do not immediately throw an exception on error. Return it instead.
      *
      * @var bool
      */
-    private $returnException = false;
+    protected $returnException = false;
 
     /**
      * Get new object instance
      *
      * @static
      * @access public
-     * @return ResponseParser
+     * @return ResponseParserInterface
      */
     public static function create()
     {
@@ -49,7 +41,7 @@ class ResponseParser
      * Set Return Exception Or Throw It
      *
      * @param $returnException
-     * @return ResponseParser
+     * @return ResponseParserInterface
      */
     public function withReturnException($returnException)
     {
@@ -58,49 +50,33 @@ class ResponseParser
     }
 
     /**
-     * Set payload
-     *
-     * @access public
-     * @param  mixed $payload
-     * @return $this
-     */
-    public function withPayload($payload)
-    {
-        $this->payload = $payload;
-        return $this;
-    }
-
-    /**
      * Parse response
      *
+     * @param $payload
      * @return array|Exception|null
      * @throws InvalidJsonFormatException
-     * @throws BadFunctionCallException
      * @throws InvalidJsonRpcFormatException
-     * @throws InvalidArgumentException
-     * @throws Exception
      * @throws ResponseException
      */
-    public function parse()
+    public function parse($payload)
     {
-        JsonFormatValidator::validate($this->payload);
+        JsonFormatValidator::validate($payload);
 
-        if ($this->isBatchResponse()) {
+        if ($this->isBatchResponse($payload)) {
             $results = array();
 
-            foreach ($this->payload as $response) {
+            foreach ($payload as $response) {
                 $results[] = self::create()
                     ->withReturnException($this->returnException)
-                    ->withPayload($response)
-                    ->parse();
+                    ->parse($response);
             }
 
             return $results;
         }
 
-        if (isset($this->payload['error']['code'])) {
+        if (isset($payload['error']['code'])) {
             try {
-                $this->handleExceptions();
+                $this->handleExceptions($payload);
             } catch (Exception $e) {
                 if ($this->returnException) {
                     return $e;
@@ -109,34 +85,47 @@ class ResponseParser
             }
         }
 
-        return isset($this->payload['result']) ? $this->payload['result'] : null;
+        return $payload['result'] ?? null;
     }
 
     /**
      * Handle exceptions
      *
-     * @access private
+     * @access protected
+     * @param $payload
      * @throws InvalidJsonFormatException
      * @throws InvalidJsonRpcFormatException
      * @throws ResponseException
      */
-    private function handleExceptions()
+    protected function handleExceptions($payload)
     {
-        switch ($this->payload['error']['code']) {
+        switch ($payload['error']['code']) {
             case -32700:
-                throw new InvalidJsonFormatException('Parse error: '.$this->payload['error']['message']);
+                throw new InvalidJsonFormatException(
+                    'Parse error: '.$payload['error']['message'],
+                    $payload['error']['code']
+                );
             case -32600:
-                throw new InvalidJsonRpcFormatException('Invalid Request: '.$this->payload['error']['message']);
+                throw new InvalidJsonRpcFormatException(
+                    'Invalid Request: '.$payload['error']['message'],
+                    $payload['error']['code']
+                );
             case -32601:
-                throw new BadFunctionCallException('Procedure not found: '.$this->payload['error']['message']);
+                throw new BadFunctionCallException(
+                    'Procedure not found: '.$payload['error']['message'],
+                    $payload['error']['code']
+                );
             case -32602:
-                throw new InvalidArgumentException('Invalid arguments: '.$this->payload['error']['message']);
+                throw new InvalidArgumentException(
+                    'Invalid arguments: '.$payload['error']['message'],
+                    $payload['error']['code']
+                );
             default:
                 throw new ResponseException(
-                    $this->payload['error']['message'],
-                    $this->payload['error']['code'],
+                    $payload['error']['message'],
+                    $payload['error']['code'],
                     null,
-                    isset($this->payload['error']['data']) ? $this->payload['error']['data'] : null
+                    $payload['error']['data'] ?? null
                 );
         }
     }
@@ -144,11 +133,11 @@ class ResponseParser
     /**
      * Return true if we have a batch response
      *
-     * @access private
+     * @access protected
      * @return boolean
      */
-    private function isBatchResponse()
+    protected function isBatchResponse($payload)
     {
-        return array_keys($this->payload) === range(0, count($this->payload) - 1);
+        return array_keys($payload) === range(0, count($payload) - 1);
     }
 }
