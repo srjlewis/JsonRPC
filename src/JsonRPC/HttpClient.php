@@ -320,9 +320,9 @@ class HttpClient
                 $debugResponse = $rawResponse;
             }
             error_log('==> Request: ' . PHP_EOL . implode(PHP_EOL,
-                    $requestHeaders) . PHP_EOL . (is_string($payload) ? $payload : json_encode($payload,
+                    $requestHeaders) .PHP_EOL . PHP_EOL . (is_string($payload) ? $payload : json_encode($payload,
                     JSON_PRETTY_PRINT)));
-            error_log('==> Response: ' . PHP_EOL . implode(PHP_EOL, $headers) . PHP_EOL . $debugResponse);
+            error_log('==> Response: ' . PHP_EOL . implode('', $headers) . PHP_EOL . $debugResponse);
         }
 
         $this->handleExceptions($headers);
