@@ -313,16 +313,10 @@ class HttpClient
         }
 
         if ($this->debug) {
-            $debugResponse = json_decode($rawResponse, true);
-            if ($debugResponse && json_last_error() === JSON_ERROR_NONE) {
-                $debugResponse = json_encode($response, JSON_PRETTY_PRINT);
-            } else {
-                $debugResponse = $rawResponse;
-            }
             error_log('==> Request: ' . PHP_EOL . implode(PHP_EOL,
                     $requestHeaders) .PHP_EOL . PHP_EOL . (is_string($payload) ? $payload : json_encode($payload,
                     JSON_PRETTY_PRINT)));
-            error_log('==> Response: ' . PHP_EOL . implode('', $headers) . PHP_EOL . $debugResponse);
+            error_log('==> Response: ' . PHP_EOL . implode('', $headers) . $rawResponse);
         }
 
         $this->handleExceptions($headers);
