@@ -104,7 +104,7 @@ class HttpClient
      * HttpClient constructor
      *
      * @access public
-     * @param  string $url
+     * @param string $url
      */
     public function __construct($url = '')
     {
@@ -115,7 +115,7 @@ class HttpClient
      * Set URL
      *
      * @access public
-     * @param  string $url
+     * @param string $url
      * @return $this
      */
     public function withUrl($url)
@@ -128,7 +128,7 @@ class HttpClient
      * Set username
      *
      * @access public
-     * @param  string $username
+     * @param string $username
      * @return $this
      */
     public function withUsername($username)
@@ -141,7 +141,7 @@ class HttpClient
      * Set password
      *
      * @access public
-     * @param  string $password
+     * @param string $password
      * @return $this
      */
     public function withPassword($password)
@@ -154,7 +154,7 @@ class HttpClient
      * Set timeout
      *
      * @access public
-     * @param  integer $timeout
+     * @param integer $timeout
      * @return $this
      */
     public function withTimeout($timeout)
@@ -167,7 +167,7 @@ class HttpClient
      * Set headers
      *
      * @access public
-     * @param  array $headers
+     * @param array $headers
      * @return $this
      */
     public function withHeaders(array $headers)
@@ -180,8 +180,8 @@ class HttpClient
      * Set cookies
      *
      * @access public
-     * @param  array     $cookies
-     * @param  boolean   $replace
+     * @param array $cookies
+     * @param boolean $replace
      */
     public function withCookies(array $cookies, $replace = false)
     {
@@ -232,7 +232,7 @@ class HttpClient
      * Assign a callback before the request
      *
      * @access public
-     * @param  Closure $closure
+     * @param Closure $closure
      * @return $this
      */
     public function withBeforeRequestCallback(Closure $closure)
@@ -256,10 +256,10 @@ class HttpClient
      * Do the HTTP request
      *
      * @access public
-     * @throws ConnectionFailureException
-     * @param  string   $payload
-     * @param  string[] $headers Headers for this request
+     * @param string $payload
+     * @param string[] $headers Headers for this request
      * @return array
+     * @throws ConnectionFailureException
      */
     public function execute($payload, array $headers = array())
     {
@@ -267,19 +267,21 @@ class HttpClient
             call_user_func_array($this->beforeRequest, array($this, $payload, $headers));
         }
 
+        $rawResponse = '';
+
         if ($this->isCurlLoaded()) {
-            $ch = curl_init();
+            $ch             = curl_init();
             $requestHeaders = $this->buildHeaders($headers);
-            $headers = array();
+            $headers        = array();
             curl_setopt_array($ch, array(
-                CURLOPT_URL => trim($this->url),
+                CURLOPT_URL            => trim($this->url),
                 CURLOPT_RETURNTRANSFER => true,
                 CURLOPT_CONNECTTIMEOUT => $this->timeout,
-                CURLOPT_MAXREDIRS => 2,
+                CURLOPT_MAXREDIRS      => 2,
                 CURLOPT_SSL_VERIFYPEER => $this->verifySslCertificate,
-                CURLOPT_POST => true,
-                CURLOPT_POSTFIELDS => $payload,
-                CURLOPT_HTTPHEADER => $requestHeaders,
+                CURLOPT_POST           => true,
+                CURLOPT_POSTFIELDS     => $payload,
+                CURLOPT_HTTPHEADER     => $requestHeaders,
                 CURLOPT_HEADERFUNCTION => function ($curl, $header) use (&$headers) {
                     $headers[] = $header;
                     return strlen($header);
@@ -288,7 +290,7 @@ class HttpClient
             if ($this->sslLocalCert !== null) {
                 curl_setopt($ch, CURLOPT_CAINFO, $this->sslLocalCert);
             }
-            $response = curl_exec($ch);
+            $rawResponse = $response = curl_exec($ch);
             curl_close($ch);
             if ($response !== false) {
                 $response = json_decode($response, true);
@@ -296,23 +298,31 @@ class HttpClient
                 throw new ConnectionFailureException('Unable to establish a connection');
             }
         } else {
-            $stream = fopen(trim($this->url), 'r', false, $this->buildContext($payload, $headers));
+            $requestHeaders = $headers;
+            $stream         = fopen(trim($this->url), 'r', false, $this->buildContext($payload, $requestHeaders));
 
-            if (! is_resource($stream)) {
+            if (!is_resource($stream)) {
                 throw new ConnectionFailureException('Unable to establish a connection');
             }
 
             $metadata = stream_get_meta_data($stream);
-            $headers = $metadata['wrapper_data'];
+            $headers  = $metadata['wrapper_data'];
             $response = json_decode(stream_get_contents($stream), true);
 
             fclose($stream);
         }
 
         if ($this->debug) {
-            error_log('==> Request: '.PHP_EOL.(is_string($payload) ? $payload : json_encode($payload, JSON_PRETTY_PRINT)));
-            error_log('==> Headers: '.PHP_EOL.var_export($headers, true));
-            error_log('==> Response: '.PHP_EOL.json_encode($response, JSON_PRETTY_PRINT));
+            $debugResponse = json_decode($rawResponse, true);
+            if ($debugResponse && json_last_error() === JSON_ERROR_NONE) {
+                $debugResponse = json_encode($response, JSON_PRETTY_PRINT);
+            } else {
+                $debugResponse = $rawResponse;
+            }
+            error_log('==> Request: ' . PHP_EOL . implode(PHP_EOL,
+                    $requestHeaders) . PHP_EOL . (is_string($payload) ? $payload : json_encode($payload,
+                    JSON_PRETTY_PRINT)));
+            error_log('==> Response: ' . PHP_EOL . implode(PHP_EOL, $headers) . PHP_EOL . $debugResponse);
         }
 
         $this->handleExceptions($headers);
@@ -325,8 +335,8 @@ class HttpClient
      * Prepare stream context
      *
      * @access protected
-     * @param  string   $payload
-     * @param  string[] $headers
+     * @param string $payload
+     * @param string[] $headers
      * @return resource
      */
     protected function buildContext($payload, array $headers = array())
@@ -335,16 +345,16 @@ class HttpClient
 
         $options = array(
             'http' => array(
-                'method' => 'POST',
+                'method'           => 'POST',
                 'protocol_version' => 1.1,
-                'timeout' => $this->timeout,
-                'max_redirects' => 2,
-                'header' => implode("\r\n", $headers),
-                'content' => $payload,
-                'ignore_errors' => true,
+                'timeout'          => $this->timeout,
+                'max_redirects'    => 2,
+                'header'           => implode("\r\n", $headers),
+                'content'          => $payload,
+                'ignore_errors'    => true,
             ),
-            'ssl' => array(
-                'verify_peer' => $this->verifySslCertificate,
+            'ssl'  => array(
+                'verify_peer'      => $this->verifySslCertificate,
                 'verify_peer_name' => $this->verifySslCertificate,
             )
         );
@@ -360,7 +370,7 @@ class HttpClient
      * Parse cookies from response
      *
      * @access protected
-     * @param  array $headers
+     * @param array $headers
      */
     protected function parseCookies(array $headers)
     {
@@ -374,8 +384,8 @@ class HttpClient
                     $item = explode('=', $cookie);
 
                     if (count($item) === 2) {
-                        $name = trim($item[0]);
-                        $value = $item[1];
+                        $name                 = trim($item[0]);
+                        $value                = $item[1];
                         $this->cookies[$name] = $value;
                     }
                 }
@@ -387,7 +397,7 @@ class HttpClient
      * Throw an exception according the HTTP response
      *
      * @access public
-     * @param  array   $headers
+     * @param array $headers
      * @throws AccessDeniedException
      * @throws ServerErrorException
      */
@@ -402,8 +412,8 @@ class HttpClient
 
         foreach ($headers as $header) {
             foreach ($exceptions as $code => $exception) {
-                if (strpos($header, 'HTTP/1.0 '.$code) !== false || strpos($header, 'HTTP/1.1 '.$code) !== false) {
-                    throw new $exception('Response: '.$header);
+                if (strpos($header, 'HTTP/1.0 ' . $code) !== false || strpos($header, 'HTTP/1.1 ' . $code) !== false) {
+                    throw new $exception('Response: ' . $header);
                 }
             }
         }
