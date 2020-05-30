@@ -19,10 +19,10 @@ class Client
      * If the only argument passed to a function is an array
      * assume it contains named arguments
      *
-     * @access private
+     * @access protected
      * @var boolean
      */
-    private $isNamedArguments = true;
+    protected $isNamedArguments = true;
 
     /**
      * Do not immediately throw an exception on error. Return it instead.
@@ -30,31 +30,31 @@ class Client
      * @access public
      * @var boolean
      */
-    private $returnException = false;
+    protected $returnException = false;
 
     /**
      * True for a batch request
      *
-     * @access private
+     * @access protected
      * @var boolean
      */
-    private $isBatch = false;
+    protected $isBatch = false;
 
     /**
      * Batch payload
      *
-     * @access private
+     * @access protected
      * @var array
      */
-    private $batch = array();
+    protected $batch = array();
 
     /**
      * Http Client
      *
-     * @access private
+     * @access protected
      * @var HttpClient
      */
-    private $httpClient;
+    protected $httpClient;
 
     /**
      * @var Response\ResponseParserInterface
