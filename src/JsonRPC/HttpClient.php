@@ -379,7 +379,7 @@ class HttpClient
 
                     if (count($item) === 2) {
                         $name                 = trim($item[0]);
-                        $value                = $item[1];
+                        $value                = trim($item[1]);
                         $this->cookies[$name] = $value;
                     }
                 }
