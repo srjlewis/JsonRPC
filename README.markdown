@@ -13,7 +13,7 @@ Features
 - Authentication and IP based client restrictions
 - Custom Middleware
 - Fully unit tested
-- Requirements: PHP >= 5.3.4
+- Requirements: PHP >= 7.1|8
 - License: MIT
 
 Author
