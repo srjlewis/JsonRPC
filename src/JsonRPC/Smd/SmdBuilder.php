@@ -8,7 +8,6 @@
 
 namespace JsonRPC\Smd;
 
-
 use ReflectionClass;
 use ReflectionFunction;
 use ReflectionMethod;
@@ -112,7 +111,8 @@ class SmdBuilder
      * @return false|string|array
      * @throws \ReflectionException
      */
-    public function build($target, $returnJSON = true) {
+    public function build($target, $returnJSON = true)
+    {
         $smd = array(
             'envelope'    => 'JSON-RPC-2.0',
             'transport'   => 'POST',
@@ -130,7 +130,7 @@ class SmdBuilder
          * ======================
          */
         foreach ($this->callbacks as $procedure => $callback) {
-            if(!isset($smd['services'][$procedure])) {
+            if (!isset($smd['services'][$procedure])) {
                 $smd['services'][$procedure]  = $this->buildSmdService($procedure, new ReflectionFunction($callback));
             }
         }
@@ -141,14 +141,13 @@ class SmdBuilder
          * ======================
          */
         foreach ($this->classes as $procedure => $callback) {
-            if(!isset($smd['services'][$procedure]) && method_exists($callback[0], $callback[1])) {
+            if (!isset($smd['services'][$procedure]) && method_exists($callback[0], $callback[1])) {
                 $className       = is_object($callback[0]) ? get_class($callback[0]) : $callback[0];
                 $methodReflection = (new ReflectionClass($className))->getMethod($callback[1]);
 
-                if(!isset($smd['services'][$procedure])){
+                if (!isset($smd['services'][$procedure])) {
                     $smd['services'][$procedure]  = $this->buildSmdService($procedure, $methodReflection);
                 }
-
             }
         }
 
@@ -164,7 +163,7 @@ class SmdBuilder
             foreach ($classReflection->getMethods(ReflectionMethod::IS_PUBLIC) as $methodReflection) {
                 if (substr($methodReflection->name, 0, 1) !== '_' && !$methodReflection->isInternal()) {
                     $serviceName = $namespace . '.' . $methodReflection->getName();
-                    if(!isset($smd['services'][$serviceName])){
+                    if (!isset($smd['services'][$serviceName])) {
                         $smd['services'][$serviceName]  = $this->buildSmdService($serviceName, $methodReflection);
                     }
                 }
@@ -182,7 +181,7 @@ class SmdBuilder
 
             foreach ($classReflection->getMethods(ReflectionMethod::IS_PUBLIC) as $methodReflection) {
                 $serviceName = $methodReflection->getName();
-                if(!isset($smd['services'][$serviceName])){
+                if (!isset($smd['services'][$serviceName])) {
                     $smd['services'][$serviceName]  = $this->buildSmdService($serviceName, $methodReflection);
                 }
             }
@@ -190,7 +189,7 @@ class SmdBuilder
 
         $smd['methods'] = $smd['services'];
 
-        if($returnJSON){
+        if ($returnJSON) {
             return json_encode($smd);
         }
         return $smd;
@@ -212,7 +211,7 @@ class SmdBuilder
             $docBlock = new DocBlock($reflection->getDocComment());
             if ($params = $docBlock->tag('param')) {
                 foreach ($params as $param) {
-                    if (substr($param['var'], 0, 1) === '$') {
+                    if (substr((string)$param['var'], 0, 1) === '$') {
                         $varName                 = substr($param['var'], 1);
                         $paramDocTypes[$varName] = $this->checkTypes(explode('|', $param['type']));
                         if (count($paramDocTypes[$varName]) === 1) {
@@ -297,8 +296,7 @@ class SmdBuilder
                 $returnTypes[] = strtolower($type);
             } elseif (class_exists($type)) {
                 $returnTypes[] = 'object';
-            }
-            else {
+            } else {
                 $returnTypes[] = 'any';
             }
         }
