@@ -14,7 +14,6 @@ use ReflectionMethod;
 use ReflectionProperty;
 use Reflector;
 
-
 /**
  * Parse the docblock of a function or method
  * @author Paul Scott <paul@duedil.com>
@@ -110,7 +109,7 @@ class DocBlock
             if (self::isTagged($line)) {
                 $b++;
                 $blocks[] = array();
-            } else if ($b == -1) {
+            } elseif ($b == -1) {
                 $b        = 0;
                 $blocks[] = array();
             }

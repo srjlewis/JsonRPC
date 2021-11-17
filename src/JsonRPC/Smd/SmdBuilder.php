@@ -283,6 +283,7 @@ class SmdBuilder
             'null',
             'int',
             'integer',
+            'false'
         );
         if (!is_array($types)) {
             return [];
