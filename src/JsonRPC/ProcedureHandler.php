@@ -355,7 +355,7 @@ class ProcedureHandler
      * @param SmdBuilder $SmdBuilder
      * @return array|string
      */
-    public function getSMD($target, $returnJSON = true, SmdBuilder $SmdBuilder = null) {
+    public function getSMD($target, $returnJSON = true, ?SmdBuilder $SmdBuilder = null) {
         if(!$SmdBuilder) {
             $SmdBuilder = new SmdBuilder();
         }
