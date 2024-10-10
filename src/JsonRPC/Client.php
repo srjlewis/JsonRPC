@@ -65,16 +65,16 @@ class Client
      * Constructor
      *
      * @access public
-     * @param string $url Server URL
-     * @param bool $returnException Return exceptions
-     * @param HttpClient $httpClient HTTP client object
+     * @param string                       $url             Server URL
+     * @param bool                         $returnException Return exceptions
+     * @param HttpClient|null              $httpClient      HTTP client object
      * @param ResponseParserInterface|null $responseParser
      */
     public function __construct(
         $url = '',
         $returnException = false,
-        HttpClient $httpClient = null,
-        ResponseParserInterface $responseParser = null
+        ?HttpClient $httpClient = null,
+        ?ResponseParserInterface $responseParser = null
     ) {
         $this->httpClient = $httpClient ?: new HttpClient($url);
         $this->returnException = $returnException;

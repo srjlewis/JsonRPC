@@ -129,24 +129,24 @@ class Server
      * Constructor
      *
      * @access public
-     * @param  string $request
-     * @param  array $server
-     * @param  ResponseBuilder $responseBuilder
-     * @param  RequestParser $requestParser
-     * @param  BatchRequestParser $batchRequestParser
-     * @param  ProcedureHandler $procedureHandler
-     * @param  MiddlewareHandler $middlewareHandler
-     * @param LoggerInterface $logger
+     * @param string                  $request
+     * @param array                   $server
+     * @param ResponseBuilder|null    $responseBuilder
+     * @param RequestParser|null      $requestParser
+     * @param BatchRequestParser|null $batchRequestParser
+     * @param ProcedureHandler|null   $procedureHandler
+     * @param MiddlewareHandler|null  $middlewareHandler
+     * @param LoggerInterface|null    $logger
      */
     public function __construct(
         $request = '',
         array $server = array(),
-        ResponseBuilder $responseBuilder = null,
-        RequestParser $requestParser = null,
-        BatchRequestParser $batchRequestParser = null,
-        ProcedureHandler $procedureHandler = null,
-        MiddlewareHandler $middlewareHandler = null,
-        LoggerInterface $logger = null
+        ?ResponseBuilder $responseBuilder = null,
+        ?RequestParser $requestParser = null,
+        ?BatchRequestParser $batchRequestParser = null,
+        ?ProcedureHandler $procedureHandler = null,
+        ?MiddlewareHandler $middlewareHandler = null,
+        ?LoggerInterface $logger = null
     ) {
         if ($request !== '') {
             $this->payload = json_decode($request, true);
