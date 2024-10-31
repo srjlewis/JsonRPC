@@ -4,13 +4,14 @@ namespace JsonRPC;
 
 use Closure;
 use Exception;
-use JsonRPC\Logger\LoggerInterface;
 use JsonRPC\Request\BatchRequestParser;
+use JsonRPC\Request\Logger\RequestLoggerInterface;
 use JsonRPC\Request\RequestParser;
 use JsonRPC\Response\ResponseBuilder;
 use JsonRPC\Validator\HostValidator;
 use JsonRPC\Validator\JsonFormatValidator;
 use JsonRPC\Validator\UserValidator;
+use Psr\Log\LoggerInterface;
 
 /**
  * JsonRPC server class
@@ -121,32 +122,35 @@ class Server
      * Server call logger
      *
      * @access protected
-     * @var LoggerInterface
+     * @var RequestLoggerInterface
      */
-    protected $logger;
+    protected $requestLogger;
+
+    protected ?LoggerInterface $psr3Logger;
 
     /**
      * Constructor
      *
      * @access public
-     * @param string                  $request
-     * @param array                   $server
-     * @param ResponseBuilder|null    $responseBuilder
-     * @param RequestParser|null      $requestParser
-     * @param BatchRequestParser|null $batchRequestParser
-     * @param ProcedureHandler|null   $procedureHandler
-     * @param MiddlewareHandler|null  $middlewareHandler
-     * @param LoggerInterface|null    $logger
+     * @param string                      $request
+     * @param array                       $server
+     * @param ResponseBuilder|null        $responseBuilder
+     * @param RequestParser|null          $requestParser
+     * @param BatchRequestParser|null     $batchRequestParser
+     * @param ProcedureHandler|null       $procedureHandler
+     * @param MiddlewareHandler|null      $middlewareHandler
+     * @param RequestLoggerInterface|null $requestLogger
      */
     public function __construct(
-        $request = '',
+        string $request = '',
         array $server = array(),
         ?ResponseBuilder $responseBuilder = null,
         ?RequestParser $requestParser = null,
         ?BatchRequestParser $batchRequestParser = null,
         ?ProcedureHandler $procedureHandler = null,
         ?MiddlewareHandler $middlewareHandler = null,
-        ?LoggerInterface $logger = null
+        ?RequestLoggerInterface $requestLogger = null,
+        ?LoggerInterface $psr3Logger = null
     ) {
         if ($request !== '') {
             $this->payload = json_decode($request, true);
@@ -154,29 +158,30 @@ class Server
             $this->payload = json_decode(file_get_contents('php://input'), true);
         }
 
-        $this->serverVariable = $server ?: $_SERVER;
-        $this->responseBuilder = $responseBuilder ?: ResponseBuilder::create();
-        $this->requestParser = $requestParser ?: RequestParser::create();
+        $this->serverVariable     = $server ?: $_SERVER;
+        $this->responseBuilder    = $responseBuilder ?: ResponseBuilder::create();
+        $this->requestParser      = $requestParser ?: RequestParser::create();
         $this->batchRequestParser = $batchRequestParser ?: BatchRequestParser::create();
-        $this->procedureHandler = $procedureHandler ?: new ProcedureHandler();
-        $this->middlewareHandler = $middlewareHandler ?: new MiddlewareHandler();
-        $this->logger = $logger ?: new Logger\NullLogger();
+        $this->procedureHandler   = $procedureHandler ?: new ProcedureHandler();
+        $this->middlewareHandler  = $middlewareHandler ?: new MiddlewareHandler();
+        $this->requestLogger      = $requestLogger ?: new Request\Logger\NullRequestLogger();
+        $this->psr3Logger         = $psr3Logger;
     }
 
     /**
      * Define alternative authentication header
      *
      * @access public
-     * @param  string   $header   Header name
+     * @param string $header Header name
      * @return $this
      */
     public function setAuthenticationHeader($header)
     {
-        if (! empty($header)) {
-            $header = 'HTTP_'.str_replace('-', '_', strtoupper($header));
-            $value = $this->getServerVariable($header);
+        if (!empty($header)) {
+            $header = 'HTTP_' . str_replace('-', '_', strtoupper($header));
+            $value  = $this->getServerVariable($header);
 
-            if (! empty($value)) {
+            if (!empty($value)) {
                 list($this->username, $this->password) = explode(':', base64_decode($value));
             }
         }
@@ -232,7 +237,7 @@ class Server
      * IP based client restrictions
      *
      * @access public
-     * @param  array   $hosts   List of hosts
+     * @param array $hosts List of hosts
      * @return $this
      */
     public function allowHosts(array $hosts)
@@ -245,7 +250,7 @@ class Server
      * HTTP Basic authentication
      *
      * @access public
-     * @param  array   $users   Dictionary of username/password
+     * @param array $users Dictionary of username/password
      * @return $this
      */
     public function authentication(array $users)
@@ -257,11 +262,11 @@ class Server
     /**
      * Register a new procedure
      *
-     * @access public
-     * @deprecated Use $server->getProcedureHandler()->withCallback($procedure, $callback)
-     * @param  string   $procedure       Procedure name
-     * @param  closure  $callback        Callback
+     * @access     public
+     * @param string  $procedure Procedure name
+     * @param closure $callback  Callback
      * @return $this
+     * @deprecated Use $server->getProcedureHandler()->withCallback($procedure, $callback)
      */
     public function register($procedure, Closure $callback)
     {
@@ -272,12 +277,12 @@ class Server
     /**
      * Bind a procedure to a class
      *
-     * @access public
-     * @deprecated Use $server->getProcedureHandler()->withClassAndMethod($procedure, $class, $method);
-     * @param  string   $procedure    Procedure name
-     * @param  mixed    $class        Class name or instance
-     * @param  string   $method       Procedure name
+     * @access     public
+     * @param string $procedure Procedure name
+     * @param mixed  $class     Class name or instance
+     * @param string $method    Procedure name
      * @return $this
+     * @deprecated Use $server->getProcedureHandler()->withClassAndMethod($procedure, $class, $method);
      */
     public function bind($procedure, $class, $method = '')
     {
@@ -288,10 +293,10 @@ class Server
     /**
      * Bind a class instance
      *
-     * @access public
-     * @deprecated Use $server->getProcedureHandler()->withObject($instance);
-     * @param  mixed   $instance    Instance name
+     * @access     public
+     * @param mixed $instance Instance name
      * @return $this
+     * @deprecated Use $server->getProcedureHandler()->withObject($instance);
      */
     public function attach($instance)
     {
@@ -303,7 +308,7 @@ class Server
      * Exception classes that should not be relayed to the client
      *
      * @access public
-     * @param  Exception|string $exception
+     * @param Exception|string $exception
      * @return $this
      */
     public function withLocalException($exception)
@@ -327,11 +332,9 @@ class Server
 
             $this->middlewareHandler
                 ->withUsername($this->getUsername())
-                ->withPassword($this->getPassword())
-            ;
+                ->withPassword($this->getPassword());
 
             $response = $this->parseRequest();
-
         } catch (Exception $e) {
             $response = $this->handleExceptions($e);
         }
@@ -344,7 +347,7 @@ class Server
      * Handle exceptions
      *
      * @access protected
-     * @param  Exception $e
+     * @param Exception $e
      * @return string
      * @throws Exception
      */
@@ -356,7 +359,7 @@ class Server
             }
         }
 
-        return $this->responseBuilder->withException($e)->build();
+        return $this->responseBuilder->withPsr3Logger($this->psr3Logger)->withException($e)->build();
     }
 
     /**
@@ -373,7 +376,8 @@ class Server
                 ->withProcedureHandler($this->procedureHandler)
                 ->withMiddlewareHandler($this->middlewareHandler)
                 ->withLocalException($this->localExceptions)
-                ->withLogger($this->logger)
+                ->withRequestLogger($this->requestLogger)
+                ->withPsr3Logger($this->psr3Logger)
                 ->parse();
         }
 
@@ -382,7 +386,8 @@ class Server
             ->withProcedureHandler($this->procedureHandler)
             ->withMiddlewareHandler($this->middlewareHandler)
             ->withLocalException($this->localExceptions)
-            ->withLogger($this->logger)
+            ->withRequestLogger($this->requestLogger)
+            ->withPsr3Logger($this->psr3Logger)
             ->parse();
     }
 
@@ -390,11 +395,11 @@ class Server
      * Check existence and get value of server variable
      *
      * @access protected
-     * @param  string $variable
+     * @param string $variable
      * @return string|null
      */
     protected function getServerVariable($variable)
     {
-        return isset($this->serverVariable[$variable]) ? $this->serverVariable[$variable] : null;
+        return $this->serverVariable[$variable] ?? null;
     }
 }

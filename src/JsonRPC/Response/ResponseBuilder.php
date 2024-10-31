@@ -12,6 +12,7 @@ use JsonRPC\Exception\InvalidJsonRpcFormatException;
 use JsonRPC\Exception\ResponseEncodingFailureException;
 use JsonRPC\Exception\ResponseException;
 use JsonRPC\Validator\JsonEncodingValidator;
+use Psr\Log\LoggerInterface;
 
 /**
  * Class ResponseBuilder
@@ -87,6 +88,8 @@ class ResponseBuilder
      */
     protected $exception;
 
+    protected ?LoggerInterface $psr3Logger;
+
     /**
      * Get new object instance
      *
@@ -103,7 +106,7 @@ class ResponseBuilder
      * Set id
      *
      * @access public
-     * @param  mixed  $id
+     * @param mixed $id
      * @return $this
      */
     public function withId($id)
@@ -116,7 +119,7 @@ class ResponseBuilder
      * Set result
      *
      * @access public
-     * @param  mixed $result
+     * @param mixed $result
      * @return $this
      */
     public function withResult($result)
@@ -129,16 +132,16 @@ class ResponseBuilder
      * Set error
      *
      * @access public
-     * @param  integer $code
-     * @param  string  $message
-     * @param  string  $data
+     * @param integer $code
+     * @param string  $message
+     * @param string  $data
      * @return $this
      */
     public function withError($code, $message, $data = '')
     {
-        $this->errorCode = $code;
+        $this->errorCode    = $code;
         $this->errorMessage = $message;
-        $this->errorData = $data;
+        $this->errorData    = $data;
         return $this;
     }
 
@@ -146,7 +149,7 @@ class ResponseBuilder
      * Set exception
      *
      * @access public
-     * @param  Exception $exception
+     * @param Exception $exception
      * @return $this
      */
     public function withException(Exception $exception)
@@ -159,8 +162,8 @@ class ResponseBuilder
      * Add HTTP header
      *
      * @access public
-     * @param  string $name
-     * @param  string $value
+     * @param string $name
+     * @param string $value
      * @return $this
      */
     public function withHeader($name, $value)
@@ -173,12 +176,18 @@ class ResponseBuilder
      * Add HTTP Status
      *
      * @access public
-     * @param  string $status
+     * @param string $status
      * @return $this
      */
     public function withStatus($status)
     {
         $this->status = $status;
+        return $this;
+    }
+
+    public function withPsr3Logger(?LoggerInterface $logger): static
+    {
+        $this->psr3Logger = $logger;
         return $this;
     }
 
@@ -233,12 +242,12 @@ class ResponseBuilder
      */
     public function sendHeaders()
     {
-        if (! empty($this->status)) {
+        if (!empty($this->status)) {
             header($this->status);
         }
 
         foreach ($this->headers as $name => $value) {
-            header($name.': '.$value);
+            header($name . ': ' . $value);
         }
 
         return $this;
@@ -255,7 +264,7 @@ class ResponseBuilder
         $response = array('jsonrpc' => '2.0');
         $this->handleExceptions();
 
-        if (! empty($this->errorMessage)) {
+        if (!empty($this->errorMessage)) {
             $response['error'] = $this->buildErrorResponse();
         } else {
             $response['result'] = $this->result;
@@ -274,11 +283,11 @@ class ResponseBuilder
     protected function buildErrorResponse()
     {
         $response = array(
-            'code' => $this->errorCode,
+            'code'    => $this->errorCode,
             'message' => $this->errorMessage,
         );
 
-        if (! empty($this->errorData)) {
+        if (!empty($this->errorData)) {
             $response['data'] = $this->errorData;
         }
 
@@ -297,40 +306,52 @@ class ResponseBuilder
                 throw $this->exception;
             }
         } catch (InvalidJsonFormatException $e) {
-            $this->errorCode = -32700;
+            $this->errorCode    = -32700;
             $this->errorMessage = 'Parse error';
-            $this->id = null;
+            $this->id           = null;
         } catch (InvalidJsonRpcFormatException $e) {
-            $this->errorCode = -32600;
+            $this->errorCode    = -32600;
             $this->errorMessage = 'Invalid Request';
-            $this->id = null;
+            $this->id           = null;
         } catch (BadFunctionCallException $e) {
-            $this->errorCode = -32601;
+            $this->errorCode    = -32601;
             $this->errorMessage = 'Method not found';
         } catch (InvalidArgumentException $e) {
-            $this->errorCode = -32602;
+            $this->errorCode    = -32602;
             $this->errorMessage = 'Invalid params';
-            $this->errorData = $this->exception->getMessage();
+            $this->errorData    = $this->exception->getMessage();
         } catch (ResponseEncodingFailureException $e) {
-            $this->errorCode = -32603;
+            $this->errorCode    = -32603;
             $this->errorMessage = 'Internal error';
-            $this->errorData = $this->exception->getMessage();
+            $this->errorData    = $this->exception->getMessage();
         } catch (AuthenticationFailureException $e) {
-            $this->errorCode = 401;
+            $this->errorCode    = 401;
             $this->errorMessage = 'Unauthorized';
-            $this->status = 'HTTP/1.0 401 Unauthorized';
+            $this->status       = 'HTTP/1.0 401 Unauthorized';
             $this->withHeader('WWW-Authenticate', 'Basic realm="JsonRPC"');
         } catch (AccessDeniedException $e) {
-            $this->errorCode = 403;
+            $this->errorCode    = 403;
             $this->errorMessage = 'Forbidden';
-            $this->status = 'HTTP/1.0 403 Forbidden';
+            $this->status       = 'HTTP/1.0 403 Forbidden';
         } catch (ResponseException $e) {
-            $this->errorCode = $this->exception->getCode();
+            $this->logException($this->exception);
+            $this->errorCode    = $this->exception->getCode();
             $this->errorMessage = $this->exception->getMessage();
-            $this->errorData = $this->exception->getData();
+            $this->errorData    = $this->exception->getData();
         } catch (Exception $e) {
-            $this->errorCode = $this->exception->getCode();
+            $this->logException($this->exception);
+            $this->errorCode    = $this->exception->getCode();
             $this->errorMessage = $this->exception->getMessage();
+        }
+    }
+
+    protected function logException(\Exception $e): void
+    {
+        if ($e->getCode() < -32099 && $e->getCode() > -32000 && $this->psr3Logger) {
+            $this->psr3Logger->error(
+                $e->getMessage(),
+                ['file' => $e->getFile(), 'line' => $e->getLine(), 'trace' => $e->getTrace()]
+            );
         }
     }
 }

@@ -16,13 +16,14 @@
         "fguillot/json-rpc": "1.*"
     },
     "require": {
-        "php": ">=7.1",
-        "ext-json": "*"
+        "php": ">=8.0",
+        "ext-json": "*",
+        "psr/log": ">=3"
     },
     "autoload": {
         "psr-0": {"JsonRPC": "src/"}
     },
     "require-dev": {
-        "phpunit/phpunit": "^7"
+        "phpunit/phpunit": "^9 || ^10.0 || ^11.0"
     }
 }

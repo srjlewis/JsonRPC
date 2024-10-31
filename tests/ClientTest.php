@@ -9,11 +9,11 @@ class ClientTest extends TestCase
 {
     private $httpClient;
 
-    public function setUp()
+    protected function setUp(): void
     {
         $this->httpClient = $this
             ->getMockBuilder('\JsonRPC\HttpClient')
-            ->setMethods(array('execute'))
+            ->onlyMethods(array('execute'))
             ->getMock();
     }
 

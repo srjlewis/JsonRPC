@@ -6,12 +6,13 @@ use Exception;
 use JsonRPC\Exception\AccessDeniedException;
 use JsonRPC\Exception\AuthenticationFailureException;
 use JsonRPC\Exception\InvalidJsonRpcFormatException;
-use JsonRPC\Logger\LoggerInterface;
 use JsonRPC\MiddlewareHandler;
 use JsonRPC\ProcedureHandler;
+use JsonRPC\Request\Logger\RequestLoggerInterface;
 use JsonRPC\Response\ResponseBuilder;
 use JsonRPC\Validator\JsonFormatValidator;
 use JsonRPC\Validator\RpcFormatValidator;
+use Psr\Log\LoggerInterface;
 
 /**
  * Class RequestParser
@@ -60,9 +61,11 @@ class RequestParser
      * Server call logger
      *
      * @access protected
-     * @var LoggerInterface
+     * @var RequestLoggerInterface
      */
-    protected $logger;
+    protected $requestLogger;
+
+    protected ?LoggerInterface $psr3Logger;
 
     /**
      * Get new object instance
@@ -133,13 +136,19 @@ class RequestParser
         return $this;
     }
 
+    public function withPsr3Logger(?LoggerInterface $logger): static
+    {
+        $this->psr3Logger = $logger;
+        return $this;
+    }
+
     /**
-     * @param LoggerInterface $logger
+     * @param RequestLoggerInterface $logger
      * @return $this
      */
-    public function withLogger(LoggerInterface $logger)
+    public function withRequestLogger(RequestLoggerInterface $logger)
     {
-        $this->logger = $logger;
+        $this->requestLogger = $logger;
         return $this;
     }
 
@@ -182,8 +191,8 @@ class RequestParser
         $endTime  = round(microtime(true),5, PHP_ROUND_HALF_UP);
         $callTime = round(($endTime - $startTime),5, PHP_ROUND_HALF_UP);
 
-        if($this->logger){
-            $this->logger->log(
+        if($this->requestLogger){
+            $this->requestLogger->log(
                 (empty($this->payload['id']) ? 0 : $this->payload['id']),
                 (empty($this->payload['method']) ? '' : $this->payload['method']),
                 (empty($this->payload['params']) ? array() : $this->payload['params']),
@@ -213,9 +222,14 @@ class RequestParser
 
         if ($e instanceof InvalidJsonRpcFormatException || ! $this->isNotification()) {
             return ResponseBuilder::create()
-                ->withId(isset($this->payload['id']) ? $this->payload['id'] : null)
+                ->withPsr3Logger($this->psr3Logger)
+                ->withId($this->payload['id'] ?? null)
                 ->withException($e)
                 ->build();
+        } elseif($this->psr3Logger) {
+            $this->psr3Logger->error(
+                $e->getMessage(), ['file' => $e->getFile(), 'line' => $e->getLine(), 'trace' => $e->getTrace()]
+            );
         }
 
         return '';

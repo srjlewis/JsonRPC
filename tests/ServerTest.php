@@ -23,10 +23,10 @@ class DummyMiddleware implements MiddlewareInterface
     }
 }
 
-class DummyLogger implements JsonRPC\Logger\LoggerInterface
+class DummyRequestLogger implements \JsonRPC\Request\Logger\RequestLoggerInterface
 {
     protected $logs = array();
-    public function log($id, $method, $params, $response, $timeTaken = 0, $metadata = array())
+    public function log($id, $method, $params, $response, int $timeTaken = 0, array $metadata = array())
     {
         $this->logs[] = array('id' => $id,'method' => $method, 'params' => $params, 'response' => $response, 'metadata' => $metadata);
     }
@@ -103,7 +103,7 @@ class ServerTest extends HeaderMockTest
         $requestParser->method('withProcedureHandler')->willReturn($requestParser);
         $requestParser->method('withMiddlewareHandler')->willReturn($requestParser);
         $requestParser->method('withLocalException')->willReturn($requestParser);
-        $requestParser->method('withLogger')->willReturn($requestParser);
+        $requestParser->method('withRequestLogger')->willReturn($requestParser);
 
         $server = new Server($this->payload, array(), null, $requestParser);
 
@@ -122,7 +122,7 @@ class ServerTest extends HeaderMockTest
         $batchRequestParser->method('withProcedureHandler')->willReturn($batchRequestParser);
         $batchRequestParser->method('withMiddlewareHandler')->willReturn($batchRequestParser);
         $batchRequestParser->method('withLocalException')->willReturn($batchRequestParser);
-        $batchRequestParser->method('withLogger')->willReturn($batchRequestParser);
+        $batchRequestParser->method('withRequestLogger')->willReturn($batchRequestParser);
 
         $server = new Server('["...", "..."]', array(), null, null, $batchRequestParser);
 
@@ -156,7 +156,7 @@ class ServerTest extends HeaderMockTest
         $batchRequestParser->method('withProcedureHandler')->willReturn($batchRequestParser);
         $batchRequestParser->method('withMiddlewareHandler')->willReturn($batchRequestParser);
         $batchRequestParser->method('withLocalException')->willReturn($batchRequestParser);
-        $batchRequestParser->method('withLogger')->willReturn($batchRequestParser);
+        $batchRequestParser->method('withRequestLogger')->willReturn($batchRequestParser);
 
         $server = new Server('["...", "..."]', array(), null, null, $batchRequestParser, $procedureHandler);
 
@@ -276,7 +276,7 @@ class ServerTest extends HeaderMockTest
     public function testLoggingWithResult()
     {
 
-        $logger = new DummyLogger();
+        $logger = new DummyRequestLogger();
         $server = new Server(
             $this->payload,
             array(),
@@ -315,7 +315,7 @@ class ServerTest extends HeaderMockTest
     public function testLoggingWithException()
     {
 
-        $logger = new DummyLogger();
+        $logger = new DummyRequestLogger();
         $server = new Server(
             $this->payload,
             array(),

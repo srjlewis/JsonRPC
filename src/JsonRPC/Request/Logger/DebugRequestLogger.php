@@ -1,22 +1,23 @@
 <?php
 
-namespace JsonRPC\Logger;
+namespace JsonRPC\Request\Logger;
+
 /**
  * Created by PhpStorm.
  * User: StevenLewis
  * Date: 09/05/2017
  * Time: 12:30
  */
-class DebugLogger implements LoggerInterface
+class DebugRequestLogger implements RequestLoggerInterface
 {
 
     /**
      * recorded requests
      * @var array
      */
-    protected $logs = array();
+    protected array $logs = array();
 
-    public function log($id, $method, $params, $response, $timeTaken = 0, $metadata = array())
+    public function log($id, $method, $params, $response, int $timeTaken = 0, array $metadata = array())
     {
         $this->logs[] = array(
             'id'        => $id,
@@ -28,7 +29,7 @@ class DebugLogger implements LoggerInterface
         );
     }
 
-    public function getLogs()
+    public function getLogs(): array
     {
         return $this->logs;
     }

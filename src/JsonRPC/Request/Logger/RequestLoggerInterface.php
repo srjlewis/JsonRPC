@@ -1,12 +1,12 @@
 <?php
-namespace JsonRPC\Logger;
+namespace JsonRPC\Request\Logger;
 /**
  * Created by PhpStorm.
  * User: StevenLewis
  * Date: 09/05/2017
  * Time: 12:27
  */
-interface LoggerInterface
+interface RequestLoggerInterface
 {
     /**
      * Record a request
@@ -19,5 +19,5 @@ interface LoggerInterface
      * @param int $timeTaken
      * @param array $metadata
      */
-    public function log($id, $method, $params, $response, $timeTaken = 0, $metadata = array());
+    public function log($id, $method, $params, $response, int $timeTaken = 0, array $metadata = []);
 }
