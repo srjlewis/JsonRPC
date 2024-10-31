@@ -17,7 +17,7 @@ class DebugRequestLogger implements RequestLoggerInterface
      */
     protected array $logs = array();
 
-    public function log($id, $method, $params, $response, int $timeTaken = 0, array $metadata = array())
+    public function log($id, $method, $params, $response, int|float $timeTaken = 0, array $metadata = array())
     {
         $this->logs[] = array(
             'id'        => $id,

@@ -10,7 +10,7 @@ namespace JsonRPC\Request\Logger;
 class NullRequestLogger implements RequestLoggerInterface
 {
 
-    public function log($id, $method, $params, $response, int $timeTaken = 0, array $metadata = array())
+    public function log($id, $method, $params, $response, int|float $timeTaken = 0, array $metadata = array())
     {
     }
 }

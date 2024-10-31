@@ -19,5 +19,5 @@ interface RequestLoggerInterface
      * @param int $timeTaken
      * @param array $metadata
      */
-    public function log($id, $method, $params, $response, int $timeTaken = 0, array $metadata = []);
+    public function log($id, $method, $params, $response, float|int $timeTaken = 0, array $metadata = []);
 }
