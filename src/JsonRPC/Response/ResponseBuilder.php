@@ -347,7 +347,7 @@ class ResponseBuilder
 
     protected function logException(\Exception $e): void
     {
-        if ($e->getCode() < -32099 && $e->getCode() > -32000 && $this->psr3Logger) {
+        if (!($e->getCode() >= -32099 && $e->getCode() <= -32000) && $this->psr3Logger) {
             $this->psr3Logger->error(
                 $e->getMessage(),
                 ['file' => $e->getFile(), 'line' => $e->getLine(), 'trace' => $e->getTrace()]
