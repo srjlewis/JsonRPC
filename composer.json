@@ -18,7 +18,7 @@
     "require": {
         "php": ">=8.0",
         "ext-json": "*",
-        "psr/log": ">=3"
+        "psr/log": "^2.0 || ^3.0"
     },
     "autoload": {
         "psr-0": {"JsonRPC": "src/"}
