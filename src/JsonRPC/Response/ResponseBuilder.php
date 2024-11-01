@@ -88,7 +88,7 @@ class ResponseBuilder
      */
     protected $exception;
 
-    protected ?LoggerInterface $psr3Logger = null;
+    protected ?LoggerInterface $psr3Logger;
 
     /**
      * Get new object instance
