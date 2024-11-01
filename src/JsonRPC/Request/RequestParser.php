@@ -65,7 +65,7 @@ class RequestParser
      */
     protected $requestLogger;
 
-    protected ?LoggerInterface $psr3Logger;
+    protected ?LoggerInterface $psr3Logger = null;
 
     /**
      * Get new object instance

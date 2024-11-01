@@ -126,7 +126,7 @@ class Server
      */
     protected $requestLogger;
 
-    protected ?LoggerInterface $psr3Logger;
+    protected ?LoggerInterface $psr3Logger = null;
 
     /**
      * Constructor
