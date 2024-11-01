@@ -227,8 +227,8 @@ class RequestParser
                 ->withException($e)
                 ->build();
         } elseif($this->psr3Logger) {
-            $this->psr3Logger->error(
-                $e->getMessage(), ['file' => $e->getFile(), 'line' => $e->getLine(), 'trace' => $e->getTrace()]
+            $this->psr3Logger->critical(
+                $e->getMessage(), ['code' => $e->getCode(), 'file' => $e->getFile(), 'line' => $e->getLine(), 'trace' => $e->getTrace()]
             );
         }
 
